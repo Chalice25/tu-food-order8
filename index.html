@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TU SMART PINTO - Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .step { display: none; }
+        .step.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col relative">
+        <header class="bg-white border-b sticky top-0 z-50 p-4 flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white font-bold">TU</div>
+                <h1 class="font-black text-gray-800 text-lg uppercase leading-none">Smart Pinto</h1>
+            </div>
+            <div id="statusHeader" class="text-right hidden">
+                <p id="displayId" class="text-[10px] font-black text-red-600 italic"></p>
+            </div>
+        </header>
+
+        <main class="p-6 flex-grow">
+            <div id="step1" class="step active">
+                <div class="text-center mt-8 mb-8">
+                    <div class="text-5xl mb-4 text-red-600">🛡️</div>
+                    <h2 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Identity Verify</h2>
+                    <p class="text-gray-400 mt-2 italic font-medium">ระบุข้อมูลเพื่อความปลอดภัยในการยืมปิ่นโต</p>
+                </div>
+                <div class="space-y-5 bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Student ID (10 Digits)</label>
+                        <input type="number" id="stuIdInput" placeholder="รหัสนักศึกษา" class="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 focus:bg-white p-4 rounded-2xl outline-none transition-all text-center text-lg font-black tracking-widest mt-1">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-2">Thai ID Card / Passport (13 Digits)</label>
+                        <input type="number" id="citizenIdInput" placeholder="เลขบัตรประชาชน" class="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 focus:bg-white p-4 rounded-2xl outline-none transition-all text-center text-lg font-black tracking-widest mt-1">
+                    </div>
+                    <button onclick="login()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-red-100 transition-all active:scale-95 uppercase">Verify & Login</button>
+                </div>
+                <p class="text-[10px] text-center text-gray-400 mt-6 px-4">ข้อมูลนี้ใช้สำหรับติดตามภาชนะของมหาวิทยาลัยเท่านั้น ตามนโยบาย PDPA</p>
+            </div>
+
+            <div id="step2" class="step">
+                <h2 class="text-2xl font-black mb-6 italic text-gray-800">Today's Healthy Menu</h2>
+                <div id="menuList" class="grid gap-5"></div>
+            </div>
+
+            <div id="step3" class="step">
+                <div class="bg-white p-8 rounded-[3rem] shadow-2xl border-4 border-green-500 text-center relative overflow-hidden">
+                    <div class="bg-green-500 h-2 w-full absolute top-0 left-0"></div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4 italic">Queue Status</p>
+                    <div id="qNumber" class="text-[6rem] font-black text-gray-900 leading-none my-4 tracking-tighter italic">--</div>
+                    
+                    <div class="bg-slate-100 p-5 rounded-2xl mb-8 border border-slate-200">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Pinto Assigned</p>
+                        <p id="pintoIdStatus" class="text-xl font-black text-blue-600 italic">รอแม่ค้าสแกนปิ่นโต...</p>
+                    </div>
+
+                    <button onclick="goToStep(4)" class="w-full bg-gray-900 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">คืนปิ่นโต (Return)</button>
+                </div>
+            </div>
+
+            <div id="step4" class="step text-center">
+                <div class="bg-white p-8 rounded-[3rem] shadow-xl border border-gray-100">
+                    <h2 class="text-2xl font-black text-gray-800 mb-2 italic uppercase">Return Scan</h2>
+                    <p class="text-gray-400 text-sm mb-8 font-medium italic">กรอกรหัสปิ่นโตที่จุดคืนอาหาร</p>
+                    <input type="text" id="returnPintoID" placeholder="เช่น TU-089" class="w-full border-2 border-gray-100 p-4 rounded-2xl mb-4 text-center font-black text-2xl outline-none focus:border-green-500 uppercase">
+                    <button onclick="submitReturn()" class="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all">Confirm Return</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ใช้ Firebase Config เดิมของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyABsq6uGZYQnYHO1B9BlBiFOv2JWjRLDIs",
+            authDomain: "tu-smart-pinto.firebaseapp.com",
+            projectId: "tu-smart-pinto",
+            storageBucket: "tu-smart-pinto.firebasestorage.app",
+            messagingSenderId: "656002336534",
+            appId: "1:656002336534:web:f257eba8e45de7b8a53237",
+            measurementId: "G-N7MR779H9P"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentStuId = "";
+        let currentCitizenId = "";
+
+        const menuData = [
+            { id: 101, name: "ข้าวมันไก่ต้ม (อกล้วน)", kcal: "390 kcal", isHealthy: true, price: 50, info: "High Protein / Zero Oil" },
+            { id: 102, name: "อกไก่ย่างเทอริยากิ", kcal: "310 kcal", isHealthy: true, price: 65, info: "Baked not Fried" },
+            { id: 103, name: "ข้าวมันไก่ผสม (ต้นตำรับ)", kcal: "580 kcal", isHealthy: false, price: 60, info: "Standard Nutrition" }
+        ];
+
+        function login() {
+            const sid = document.getElementById('stuIdInput').value;
+            const cid = document.getElementById('citizenIdInput').value;
+            
+            if(sid.length < 10) return alert("กรุณากรอกรหัสนักศึกษาให้ครบ 10 หลัก");
+            if(cid.length < 13) return alert("กรุณากรอกเลขบัตรประชาชนให้ครบ 13 หลัก");
+            
+            currentStuId = sid;
+            currentCitizenId = cid;
+            document.getElementById('displayId').innerText = "STU:" + sid;
+            document.getElementById('statusHeader').classList.remove('hidden');
+            goToStep(2);
+            renderMenu();
+            listenToOrder();
+        }
+
+        function goToStep(num) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + num).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        function renderMenu() {
+            const list = document.getElementById('menuList');
+            list.innerHTML = menuData.map(m => `
+                <div class="bg-white p-6 rounded-[2.5rem] border-2 ${m.isHealthy ? 'border-green-100' : 'border-gray-50'} shadow-xl relative overflow-hidden transition-all active:scale-[0.98]">
+                    ${m.isHealthy ? '<div class="absolute top-0 right-0 bg-green-500 text-white text-[9px] px-3 py-1 rounded-bl-xl font-bold uppercase italic">Healthy</div>' : ''}
+                    <h3 class="font-black text-xl text-gray-800 leading-tight">${m.name}</h3>
+                    <div class="flex gap-2 items-center my-2">
+                        <span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">🔥 ${m.kcal}</span>
+                    </div>
+                    <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-4">${m.info}</p>
+                    <div class="flex justify-between items-center border-t pt-4">
+                        <span class="text-3xl font-black text-red-600 leading-none">${m.price} <span class="text-sm">฿</span></span>
+                        <button onclick="placeOrder('${m.name}')" class="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-lg active:scale-95 transition-all">Order</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function placeOrder(name) {
+            const q = "A-" + Math.floor(Math.random() * 99);
+            document.getElementById('qNumber').innerText = q;
+            // ส่งข้อมูลไป Firebase โดยผูกทั้งรหัสนักศึกษาและเลขบัตรประชาชน
+            db.ref('orders/' + currentStuId).set({
+                stuId: currentStuId,
+                citizenId: currentCitizenId, // เก็บเลขบัตรไว้ในฐานข้อมูลเพื่อติดตามตัว
+                menu: name,
+                status: "Pending",
+                pintoId: "",
+                queue: q,
+                timestamp: Date.now()
+            });
+            goToStep(3);
+        }
+
+        function listenToOrder() {
+            db.ref('orders/' + currentStuId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data && data.pintoId) {
+                    const statusEl = document.getElementById('pintoIdStatus');
+                    statusEl.innerText = "TU-PINTO: " + data.pintoId.toUpperCase();
+                    statusEl.className = "text-xl font-black text-green-600 italic text-center";
+                }
+            });
+        }
+
+        function submitReturn() {
+            const pid = document.getElementById('returnPintoID').value;
+            if(!pid) return alert("กรุณาระบุรหัสปิ่นโตเพื่อคืน");
+            db.ref('orders/' + currentStuId).remove();
+            alert("คืนสำเร็จ! ข้อมูลการยืมของคุณถูกลบออกจากระบบแล้ว");
+            location.reload();
+        }
+    </script>
+</body>
+</html>
